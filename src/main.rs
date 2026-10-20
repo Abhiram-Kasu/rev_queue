@@ -60,7 +60,7 @@ async fn main() -> anyhow::Result<()> {
             anyhow::ensure!(address.ip().is_loopback(), "server must bind loopback");
             let config_path = service
                 .repository()
-                .git_dir()
+                .common_dir()
                 .join("revqueue-runtime.json");
             let config = runtime(config_path.clone())?;
             let capabilities = BTreeMap::from([

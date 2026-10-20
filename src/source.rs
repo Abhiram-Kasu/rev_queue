@@ -36,18 +36,8 @@ pub fn capture(
     let root = fs::canonicalize(worktree)?;
     ensure!(root.is_dir(), "worktree must be a directory");
     let workspace = GitRepository::open(&root)?;
-    let common = repo.run(
-        &["rev-parse", "--path-format=absolute", "--git-common-dir"],
-        &[],
-        None,
-    )?;
-    let workspace_common = workspace.run(
-        &["rev-parse", "--path-format=absolute", "--git-common-dir"],
-        &[],
-        None,
-    )?;
     ensure!(
-        common == workspace_common,
+        repo.common_dir() == workspace.common_dir(),
         "capture workspace belongs to a different repository"
     );
     let top = workspace.run(&["rev-parse", "--show-toplevel"], &[], None)?;

@@ -77,7 +77,7 @@ impl Service {
             .write(true)
             .create(true)
             .truncate(false)
-            .open(repo.git_dir().join("revqueue-writer.lock"))
+            .open(repo.common_dir().join("revqueue-writer.lock"))
             .map_err(storage)?;
         lock.try_lock_exclusive()
             .map_err(|_| storage("another Rev Queue writer holds this repository"))?;

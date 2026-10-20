@@ -13,6 +13,7 @@ use std::{
 pub struct GitRepository {
     path: PathBuf,
     git_dir: PathBuf,
+    common_dir: PathBuf,
 }
 
 #[derive(Debug)]
@@ -96,8 +97,24 @@ impl GitRepository {
             .args(["rev-parse", "--absolute-git-dir"])
             .output()?;
         ensure!(output.status.success(), "not a Git repository");
-        let git_dir = PathBuf::from(String::from_utf8(output.stdout)?.trim());
-        Ok(Self { path, git_dir })
+        let git_dir = fs::canonicalize(PathBuf::from(
+            String::from_utf8(output.stdout)?.trim_end_matches('\n'),
+        ))?;
+        let common = Self::base_command(&path)
+            .args(["rev-parse", "--path-format=absolute", "--git-common-dir"])
+            .output()?;
+        ensure!(
+            common.status.success(),
+            "cannot locate common Git directory"
+        );
+        let common_dir = fs::canonicalize(PathBuf::from(
+            String::from_utf8(common.stdout)?.trim_end_matches('\n'),
+        ))?;
+        Ok(Self {
+            path,
+            git_dir,
+            common_dir,
+        })
     }
     pub fn init(path: impl AsRef<Path>) -> Result<Self> {
         fs::create_dir_all(path.as_ref())?;
@@ -116,6 +133,9 @@ impl GitRepository {
     }
     pub fn git_dir(&self) -> &Path {
         &self.git_dir
+    }
+    pub fn common_dir(&self) -> &Path {
+        &self.common_dir
     }
     pub(crate) fn command(&self) -> Command {
         Self::base_command(&self.path)
@@ -1007,6 +1027,26 @@ pub(crate) mod tests {
                 .is_err()
         );
         assert!(restored.repo.object_kind(&foreign_head).is_err());
+    }
+
+    #[test]
+    fn linked_worktrees_share_the_canonical_common_directory() {
+        let t = TestRepo::new();
+        let tree = t.tree(&[("file.rs", b"fn main() {}\n")]);
+        let destination = t.root.join("linked");
+        crate::source::materialize(&t.repo, &tree, &destination).unwrap();
+        let linked = GitRepository::open(&destination).unwrap();
+        assert_eq!(t.repo.common_dir(), linked.common_dir());
+        assert_eq!(t.repo.common_dir(), t.repo.git_dir());
+        assert_ne!(t.repo.git_dir(), linked.git_dir());
+        assert_eq!(
+            linked.common_dir(),
+            fs::canonicalize(t.repo.common_dir()).unwrap()
+        );
+        assert_eq!(
+            crate::source::capture(&linked, &destination, &tree, &["file.rs".into()]).unwrap(),
+            tree
+        );
     }
 
     #[test]

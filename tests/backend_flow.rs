@@ -896,3 +896,14 @@ fn replacement_batch_cannot_add_work_using_a_transitively_invalidated_prerequisi
     assert!(before.1.current_thunks.contains(&a.id));
     assert!(before.1.reviews[&b.id].stale_causes.is_empty());
 }
+
+#[test]
+fn linked_worktrees_share_the_repository_writer_lock() {
+    let f = Fixture::new();
+    let destination = tempfile::tempdir().unwrap();
+    let workspace = destination.path().join("workspace");
+    rev_queue::source::materialize(f.service.repository(), &f.empty.tree.0, &workspace).unwrap();
+    assert!(Service::open(&workspace).is_err());
+    drop(f.service);
+    assert!(Service::open(&workspace).is_ok());
+}
