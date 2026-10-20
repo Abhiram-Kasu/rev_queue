@@ -1,4 +1,6 @@
 pub mod anchors;
+pub mod api;
+pub mod client;
 pub mod core;
 pub mod diff;
 pub mod model;
