@@ -2,6 +2,8 @@
 
 A local, Git-backed review queue for agent changes. The backend is implemented in Rust; the GPUI desktop application is a future consumer of the shared `model` and `client` modules. See [DESIGN.md](DESIGN.md) for the product design.
 
+See [FRONTEND.md](FRONTEND.md) for the GPUI implementation handoff, integration steps, and acceptance checks against the current backend.
+
 ## Run
 
 Requires Rust and Git on PATH. Start inside an existing source repository:
